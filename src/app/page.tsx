@@ -833,11 +833,11 @@ export default function Home() {
     setWaStatus('connecting');
     
     try {
-      // Check status via main API
-      const statusRes = await fetch('/api/', {
+      // Check status via customers API
+      const statusRes = await fetch('/api/customers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'status' })
+        body: JSON.stringify({ action: 'whatsapp-status' })
       });
       const statusData = await statusRes.json();
       
@@ -877,13 +877,13 @@ export default function Home() {
       clearInterval(waPollingInterval);
     }
     
-    // Poll every 2 seconds via main API
+    // Poll every 2 seconds via customers API
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('/api/', {
+        const res = await fetch('/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'status' })
+          body: JSON.stringify({ action: 'whatsapp-status' })
         });
         const data = await res.json();
         
@@ -908,11 +908,11 @@ export default function Home() {
   
   // Auto-connect to WhatsApp server on mount
   useEffect(() => {
-    // Check connection status via main API
-    fetch('/api/', {
+    // Check connection status via customers API
+    fetch('/api/customers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'status' })
+      body: JSON.stringify({ action: 'whatsapp-status' })
     })
       .then(res => res.json())
       .then(data => {
@@ -1063,18 +1063,19 @@ export default function Home() {
       }
       
       try {
-        // إرسال مباشرة إلى Railway (CORS مدعوم)
-        const response = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/send-message', {
+        // إرسال عبر API الموحد على Vercel
+        const response = await fetch('/api/customers', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
+            action: 'send-whatsapp',
             phone: phone, 
             message: waMessageText 
           })
         });
         
         const result = await response.json();
-        console.log('Railway result:', result);
+        console.log('WhatsApp result:', result);
         
         if (result.success) {
           logs.push({

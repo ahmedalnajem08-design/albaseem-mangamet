@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 
+const WHATSAPP_SERVER = 'https://albaseem-whatsapp-production.up.railway.app';
+
 // GET - Get all customers with their cities and reports
 export async function GET(request: NextRequest) {
   try {
@@ -66,11 +68,78 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new customer
+// POST - Create new customer OR Send WhatsApp message
 export async function POST(request: NextRequest) {
   try {
-    const supabase = await createClient()
     const body = await request.json()
+    
+    // ===== WHATSAPP SEND MESSAGE =====
+    if (body.action === 'send-whatsapp') {
+      const { phone, message } = body
+      
+      if (!phone || !message) {
+        return NextResponse.json({
+          success: false,
+          error: 'رقم الهاتف والرسالة مطلوبان'
+        }, { status: 400 })
+      }
+
+      // تنسيق الرقم للعراق
+      let formattedPhone = phone.toString().replace(/\D/g, '');
+      if (formattedPhone.startsWith('0')) {
+        formattedPhone = '964' + formattedPhone.substring(1);
+      }
+
+      console.log('[WhatsApp] Sending to:', formattedPhone);
+
+      try {
+        const res = await fetch(`${WHATSAPP_SERVER}/api/send-message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: formattedPhone, message })
+        });
+
+        const result = await res.json();
+        console.log('[WhatsApp] Result:', result);
+
+        if (result.success) {
+          return NextResponse.json({
+            success: true,
+            messageId: result.messageId,
+            to: result.to
+          });
+        } else {
+          return NextResponse.json({
+            success: false,
+            error: result.message || result.error || 'فشل الإرسال'
+          }, { status: 500 });
+        }
+      } catch (err: any) {
+        console.error('[WhatsApp] Error:', err);
+        return NextResponse.json({
+          success: false,
+          error: 'خطأ في الاتصال بسيرفر الواتساب: ' + err.message
+        }, { status: 500 });
+      }
+    }
+
+    // ===== WHATSAPP STATUS =====
+    if (body.action === 'whatsapp-status') {
+      try {
+        const res = await fetch(`${WHATSAPP_SERVER}/api/status`);
+        const data = await res.json();
+        return NextResponse.json(data);
+      } catch (err: any) {
+        return NextResponse.json({
+          ready: false,
+          status: 'error',
+          error: err.message
+        }, { status: 500 });
+      }
+    }
+
+    // ===== CREATE CUSTOMER =====
+    const supabase = await createClient()
     const { name, phone, address, locationLink, cityIds } = body
 
     if (!name || !phone || !address || !cityIds?.length) {
