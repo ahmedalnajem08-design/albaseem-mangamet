@@ -1071,8 +1071,8 @@ export default function Home() {
       }
       
       try {
-        // إرسال عبر API
-        const response = await fetch('/api/whatsapp/send', {
+        // إرسال مباشرة إلى Railway
+        const response = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/send-message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
