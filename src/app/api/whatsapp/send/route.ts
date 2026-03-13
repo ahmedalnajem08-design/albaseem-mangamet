@@ -1,75 +1,43 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server';
 
-interface SendMessageRequest {
-  recipients: Array<{
-    phone: string
-    name: string
-  }>
-  message: string
-  imageUrl?: string
-}
-
-// Global session state
-declare global {
-  // eslint-disable-next-line no-var
-  var whatsappSession: {
-    status: 'disconnected' | 'connecting' | 'connected'
-    phoneNumber: string | null
-    qrCode: string | null
-    connectedAt: Date | null
-  }
-}
-
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body: SendMessageRequest = await request.json()
-    const { recipients, message, imageUrl } = body
+    const body = await request.json();
+    const { phone, message } = body;
 
-    // Check if WhatsApp is connected
-    if (!globalThis.whatsappSession || globalThis.whatsappSession.status !== 'connected') {
+    if (!phone || !message) {
       return NextResponse.json({
         success: false,
-        error: 'WhatsApp not connected. Please connect your WhatsApp account first.',
-        results: recipients.map(r => ({
-          phone: r.phone,
-          name: r.name,
-          status: 'failed',
-          error: 'WhatsApp not connected'
-        }))
-      }, { status: 400 })
+        error: 'Phone and message are required'
+      }, { status: 400 });
     }
 
-    // Simulate sending messages
-    // In production, this would use WhatsApp Business API or similar
-    const results = recipients.map(recipient => {
-      // Simulate 90% success rate
-      const success = Math.random() > 0.1
-      return {
-        phone: recipient.phone,
-        name: recipient.name,
-        status: success ? 'sent' : 'failed',
-        error: success ? null : 'Number not registered on WhatsApp',
-        messageId: success ? `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}` : null
-      }
-    })
+    // Format phone number
+    let formattedPhone = phone.replace(/\D/g, '');
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '964' + formattedPhone.substring(1);
+    }
 
-    const successful = results.filter(r => r.status === 'sent').length
-    const failed = results.filter(r => r.status === 'failed').length
+    const serverUrl = 'https://albaseem-whatsapp-production.up.railway.app';
+    
+    console.log(`[WhatsApp API] Sending to ${formattedPhone}`);
 
-    return NextResponse.json({
-      success: true,
-      total: recipients.length,
-      successful,
-      failed,
-      results,
-      sentAt: new Date().toISOString(),
-      sentFrom: globalThis.whatsappSession.phoneNumber
-    })
-  } catch (error) {
-    console.error('Error sending WhatsApp messages:', error)
+    const response = await fetch(`${serverUrl}/api/send-message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: formattedPhone, message })
+    });
+
+    const result = await response.json();
+    console.log('[WhatsApp API] Server response:', result);
+
+    return NextResponse.json(result);
+
+  } catch (error: any) {
+    console.error('[WhatsApp API] Error:', error);
     return NextResponse.json({
       success: false,
-      error: 'Failed to send messages. Please try again.'
-    }, { status: 500 })
+      error: error.message || 'Internal server error'
+    }, { status: 500 });
   }
 }

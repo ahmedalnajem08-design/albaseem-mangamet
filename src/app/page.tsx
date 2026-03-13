@@ -1072,7 +1072,7 @@ export default function Home() {
       
       try {
         // إرسال عبر API
-        const response = await fetch('/api/whatsapp/send-message', {
+        const response = await fetch('/api/whatsapp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
