@@ -1071,8 +1071,8 @@ export default function Home() {
       }
       
       try {
-        // إرسال عبر Middleware Proxy
-        const response = await fetch('/api/wa/send-message', {
+        // إرسال مباشرة إلى Railway (يتجاوز Vercel)
+        const response = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/send-message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1082,7 +1082,7 @@ export default function Home() {
         });
         
         const result = await response.json();
-        console.log('Send result:', result);
+        console.log('Railway result:', result);
         
         if (result.success) {
           logs.push({
