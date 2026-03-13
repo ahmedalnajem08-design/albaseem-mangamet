@@ -833,11 +833,11 @@ export default function Home() {
     setWaStatus('connecting');
     
     try {
-      // Check status via customers API
-      const statusRes = await fetch('/api/customers', {
+      // Check status via cities API
+      const statusRes = await fetch('/api/cities', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'whatsapp-status' })
+        body: JSON.stringify({ wa_action: 'status' })
       });
       const statusData = await statusRes.json();
       
@@ -877,13 +877,13 @@ export default function Home() {
       clearInterval(waPollingInterval);
     }
     
-    // Poll every 2 seconds via customers API
+    // Poll every 2 seconds via cities API
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('/api/customers', {
+        const res = await fetch('/api/cities', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'whatsapp-status' })
+          body: JSON.stringify({ wa_action: 'status' })
         });
         const data = await res.json();
         
@@ -908,11 +908,11 @@ export default function Home() {
   
   // Auto-connect to WhatsApp server on mount
   useEffect(() => {
-    // Check connection status via customers API
-    fetch('/api/customers', {
+    // Check connection status via cities API
+    fetch('/api/cities', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'whatsapp-status' })
+      body: JSON.stringify({ wa_action: 'status' })
     })
       .then(res => res.json())
       .then(data => {
@@ -1063,12 +1063,12 @@ export default function Home() {
       }
       
       try {
-        // إرسال عبر API الموحد على Vercel
-        const response = await fetch('/api/customers', {
+        // إرسال عبر cities API الموحد على Vercel
+        const response = await fetch('/api/cities', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            action: 'send-whatsapp',
+            wa_action: 'send',
             phone: phone, 
             message: waMessageText 
           })

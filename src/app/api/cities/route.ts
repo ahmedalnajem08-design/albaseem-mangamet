@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 
+const WHATSAPP_SERVER = 'https://albaseem-whatsapp-production.up.railway.app';
+
 // GET - Get all cities
 export async function GET() {
   try {
@@ -22,11 +24,58 @@ export async function GET() {
   }
 }
 
-// POST - Create new city
+// POST - Create new city OR WhatsApp operations
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json()
+    
+    // ===== WHATSAPP STATUS =====
+    if (body.wa_action === 'status') {
+      try {
+        const res = await fetch(`${WHATSAPP_SERVER}/api/status`);
+        const data = await res.json();
+        return NextResponse.json(data);
+      } catch (err: any) {
+        return NextResponse.json({ ready: false, status: 'error', error: err.message }, { status: 500 });
+      }
+    }
+    
+    // ===== WHATSAPP SEND =====
+    if (body.wa_action === 'send') {
+      const { phone, message } = body;
+      
+      if (!phone || !message) {
+        return NextResponse.json({ success: false, error: 'Phone and message required' }, { status: 400 });
+      }
+      
+      // Format phone for Iraq
+      let formattedPhone = phone.toString().replace(/\D/g, '');
+      if (formattedPhone.startsWith('0')) {
+        formattedPhone = '964' + formattedPhone.substring(1);
+      }
+      
+      try {
+        const res = await fetch(`${WHATSAPP_SERVER}/api/send-message`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: formattedPhone, message })
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          return NextResponse.json({ success: true, messageId: result.messageId, to: result.to });
+        } else {
+          return NextResponse.json({ success: false, error: result.message || result.error || 'Failed' }, { status: 500 });
+        }
+      } catch (err: any) {
+        return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+      }
+    }
+    
+    // ===== CREATE CITY =====
     const supabase = await createClient()
-    const { name } = await request.json()
+    const { name } = body
 
     if (!name) {
       return NextResponse.json({ error: 'اسم المدينة مطلوب' }, { status: 400 })
