@@ -1063,12 +1063,12 @@ export default function Home() {
       }
       
       try {
-        // إرسال عبر API الرئيسي (موجود على Vercel)
-        const response = await fetch('/api/', {
+        // إرسال عبر API الموجود على Vercel
+        const response = await fetch('/api/whatsapp/status', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            action: 'send-whatsapp',
+            action: 'send',
             phone: phone, 
             message: waMessageText 
           })
