@@ -980,6 +980,8 @@ export default function Home() {
   };
 
   const sendWhatsappMessage = async (phone: string, message: string) => {
+    console.log('sendWhatsappMessage called:', { phone, message, waServerUrl, waStatus });
+    
     if (!waServerUrl || waStatus !== 'connected') {
       throw new Error('الواتساب غير متصل');
     }
@@ -988,19 +990,26 @@ export default function Home() {
     const formattedPhone = formatPhoneForWhatsApp(phone);
     console.log(`Sending to ${formattedPhone} (original: ${phone})`);
     
-    const response = await fetch(`${waServerUrl}/api/send-message`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone: formattedPhone, message })
-    });
-    
-    const result = await response.json();
-    
-    if (!result.success) {
-      throw new Error(result.error || result.message || 'فشل الإرسال');
+    try {
+      const response = await fetch(`${waServerUrl}/api/send-message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: formattedPhone, message })
+      });
+      
+      console.log('Response status:', response.status);
+      const result = await response.json();
+      console.log('Response result:', result);
+      
+      if (!result.success) {
+        throw new Error(result.error || result.message || 'فشل الإرسال');
+      }
+      
+      return result;
+    } catch (error: any) {
+      console.error('sendWhatsappMessage error:', error);
+      throw error;
     }
-    
-    return result;
   };
 
   const executeSendWhatsapp = async (isScheduled = false, scheduleDate = null) => {
