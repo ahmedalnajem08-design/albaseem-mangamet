@@ -231,7 +231,7 @@ export default function Home() {
   const [waQrCode, setWaQrCode] = useState('');
   const [waQrTimer, setWaQrTimer] = useState(20);
   const [waLoading, setWaLoading] = useState(false);
-  const [waServerUrl, setWaServerUrl] = useState('');
+  const [waServerUrl, setWaServerUrl] = useState('https://albaseem-whatsapp-production.up.railway.app');
   const [waPollingInterval, setWaPollingInterval] = useState<NodeJS.Timeout | null>(null);
   
   // Send Message States
@@ -907,21 +907,27 @@ export default function Home() {
     setWaPollingInterval(interval);
   };
   
-  // Load saved server URL on mount
+  // Auto-connect to WhatsApp server on mount
   useEffect(() => {
     const savedUrl = localStorage.getItem('waServerUrl');
-    if (savedUrl) {
-      setWaServerUrl(savedUrl);
-      // Check connection status
-      fetch(`${savedUrl}/api/status`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.ready) {
-            setWaStatus('connected');
-          }
-        })
-        .catch(() => {});
+    const serverUrl = savedUrl || 'https://albaseem-whatsapp-production.up.railway.app';
+    
+    if (!savedUrl) {
+      localStorage.setItem('waServerUrl', serverUrl);
     }
+    
+    setWaServerUrl(serverUrl);
+    
+    // Check connection status
+    fetch(`${serverUrl}/api/status`)
+      .then(res => res.json())
+      .then(data => {
+        console.log('WhatsApp server status:', data);
+        if (data.ready) {
+          setWaStatus('connected');
+        }
+      })
+      .catch(err => console.error('Failed to connect to WhatsApp server:', err));
   }, []);
   
   const handleDisconnectWhatsapp = async () => {
