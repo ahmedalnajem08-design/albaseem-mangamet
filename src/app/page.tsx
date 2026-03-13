@@ -1071,8 +1071,8 @@ export default function Home() {
       }
       
       try {
-        // إرسال عبر Rewrite Proxy (يتجاوز CORS)
-        const response = await fetch('/api/whatsapp/railway/send-message', {
+        // إرسال عبر Vercel API
+        const response = await fetch('/api/whatsapp/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
