@@ -1071,8 +1071,8 @@ export default function Home() {
       }
       
       try {
-        // إرسال مباشرة عبر Railway proxy (يتجاوز CORS)
-        const response = await fetch('/api/whatsapp/railway/send-message', {
+        // إرسال عبر Middleware Proxy
+        const response = await fetch('/api/wa/send-message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
