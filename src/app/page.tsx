@@ -980,9 +980,9 @@ export default function Home() {
   };
 
   const sendWhatsappMessage = async (phone: string, message: string) => {
-    console.log('sendWhatsappMessage called:', { phone, message, waServerUrl, waStatus });
+    console.log('sendWhatsappMessage called:', { phone, message, waStatus });
     
-    if (!waServerUrl || waStatus !== 'connected') {
+    if (waStatus !== 'connected') {
       throw new Error('الواتساب غير متصل');
     }
     
@@ -991,10 +991,15 @@ export default function Home() {
     console.log(`Sending to ${formattedPhone} (original: ${phone})`);
     
     try {
-      const response = await fetch(`${waServerUrl}/api/send-message`, {
+      // Use Next.js API route to avoid CORS issues
+      const response = await fetch('/api/whatsapp/send-message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: formattedPhone, message })
+        body: JSON.stringify({ 
+          phone: formattedPhone, 
+          message,
+          serverUrl: waServerUrl 
+        })
       });
       
       console.log('Response status:', response.status);
@@ -1002,7 +1007,7 @@ export default function Home() {
       console.log('Response result:', result);
       
       if (!result.success) {
-        throw new Error(result.error || result.message || 'فشل الإرسال');
+        throw new Error(result.error || 'فشل الإرسال');
       }
       
       return result;
