@@ -833,8 +833,12 @@ export default function Home() {
     setWaStatus('connecting');
     
     try {
-      // Check status via proxy
-      const statusRes = await fetch('/api/wa/status');
+      // Check status via main API
+      const statusRes = await fetch('/api/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'status' })
+      });
       const statusData = await statusRes.json();
       
       if (statusData.ready) {
@@ -846,8 +850,8 @@ export default function Home() {
         return;
       }
       
-      // Get QR Code via proxy
-      const qrRes = await fetch('/api/wa/qr');
+      // Get QR Code directly from Railway
+      const qrRes = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/qr');
       const qrData = await qrRes.json();
       
       if (qrData.qr) {
@@ -873,10 +877,14 @@ export default function Home() {
       clearInterval(waPollingInterval);
     }
     
-    // Poll every 2 seconds via proxy
+    // Poll every 2 seconds via main API
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('/api/wa/status');
+        const res = await fetch('/api/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'status' })
+        });
         const data = await res.json();
         
         if (data.ready) {
@@ -886,7 +894,7 @@ export default function Home() {
           clearInterval(interval);
         } else if (data.status === 'qr') {
           // Get updated QR
-          const qrRes = await fetch('/api/wa/qr');
+          const qrRes = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/qr');
           const qrData = await qrRes.json();
           if (qrData.qr) setWaQrCode(qrData.qr);
         }
@@ -900,8 +908,12 @@ export default function Home() {
   
   // Auto-connect to WhatsApp server on mount
   useEffect(() => {
-    // Check connection status via API proxy
-    fetch('/api/wa/status')
+    // Check connection status via main API
+    fetch('/api/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'status' })
+    })
       .then(res => res.json())
       .then(data => {
         console.log('WhatsApp server status:', data);
@@ -1051,19 +1063,19 @@ export default function Home() {
       }
       
       try {
-        // إرسال مباشرة إلى Railway مع CORS
-        const response = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/send-message', {
+        // إرسال عبر API الرئيسي (موجود على Vercel)
+        const response = await fetch('/api/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          mode: 'cors',
           body: JSON.stringify({ 
+            action: 'send-whatsapp',
             phone: phone, 
             message: waMessageText 
           })
         });
         
         const result = await response.json();
-        console.log('Railway result:', result);
+        console.log('API result:', result);
         
         if (result.success) {
           logs.push({
