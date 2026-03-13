@@ -1063,19 +1063,18 @@ export default function Home() {
       }
       
       try {
-        // إرسال عبر API الموجود على Vercel
-        const response = await fetch('/api/whatsapp/status', {
+        // إرسال مباشرة إلى Railway (CORS مدعوم)
+        const response = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/send-message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
-            action: 'send',
             phone: phone, 
             message: waMessageText 
           })
         });
         
         const result = await response.json();
-        console.log('API result:', result);
+        console.log('Railway result:', result);
         
         if (result.success) {
           logs.push({
@@ -1095,13 +1094,17 @@ export default function Home() {
           });
         }
       } catch (err: any) {
+        console.error('Send error:', err);
+        // Fallback: فتح واتساب ويب
+        const whatsappUrl = `https://wa.me/${phone}?text=${encodeURIComponent(waMessageText)}`;
         logs.push({
           id: `log_${Date.now()}_${target.id}`,
           targetName: target.name,
           phone: phone,
-          status: 'failed',
-          error: err.message || 'خطأ في الاتصال'
+          status: 'fallback',
+          error: `سيتم فتح واتساب ويب - ${err.message}`
         });
+        window.open(whatsappUrl, '_blank');
       }
       
       // تأخير بين الرسائل
