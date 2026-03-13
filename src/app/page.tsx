@@ -846,10 +846,10 @@ export default function Home() {
       const statusRes = await fetch(`${serverUrl}/api/status`);
       const statusData = await statusRes.json();
       
-      if (statusData.connected) {
+      if (statusData.ready) {
         // Already connected
         setWaStatus('connected');
-        setWaPhone(statusData.phone || '');
+        setWaPhone('');
         setWaQrCode('');
         setWaLoading(false);
         return;
@@ -863,6 +863,9 @@ export default function Home() {
         setWaQrCode(qrData.qr);
         // Start polling for connection
         startWaPolling(serverUrl);
+      } else {
+        // Wait and retry
+        setTimeout(() => connectToWaServer(serverUrl), 3000);
       }
     } catch (error) {
       console.error('Connection error:', error);
@@ -885,11 +888,16 @@ export default function Home() {
         const res = await fetch(`${serverUrl}/api/status`);
         const data = await res.json();
         
-        if (data.connected) {
+        if (data.ready) {
           setWaStatus('connected');
-          setWaPhone(data.phone || '');
+          setWaPhone('');
           setWaQrCode('');
           clearInterval(interval);
+        } else if (data.status === 'qr') {
+          // Get updated QR
+          const qrRes = await fetch(`${serverUrl}/api/qr`);
+          const qrData = await qrRes.json();
+          if (qrData.qr) setWaQrCode(qrData.qr);
         }
       } catch (error) {
         console.error('Polling error:', error);
@@ -908,9 +916,8 @@ export default function Home() {
       fetch(`${savedUrl}/api/status`)
         .then(res => res.json())
         .then(data => {
-          if (data.connected) {
+          if (data.ready) {
             setWaStatus('connected');
-            setWaPhone(data.phone || '');
           }
         })
         .catch(() => {});
@@ -946,7 +953,7 @@ export default function Home() {
       throw new Error('الواتساب غير متصل');
     }
     
-    const response = await fetch(`${waServerUrl}/api/send`, {
+    const response = await fetch(`${waServerUrl}/api/send-message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone, message })
