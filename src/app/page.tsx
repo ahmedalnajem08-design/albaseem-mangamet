@@ -1082,6 +1082,7 @@ export default function Home() {
         });
         
         const result = await response.json();
+        console.log('Send result:', result);
         
         if (result.success) {
           logs.push({
@@ -1092,13 +1093,36 @@ export default function Home() {
             error: ''
           });
         } else {
-          logs.push({
-            id: `log_${Date.now()}_${target.id}`,
-            targetName: target.name,
-            phone: phone,
-            status: 'failed',
-            error: result.error || 'فشل الإرسال'
+          // إذا فشل من Vercel، جرب Railway مباشرة
+          console.log('Vercel failed, trying Railway directly...');
+          const directResponse = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/send-message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              phone: phone, 
+              message: waMessageText 
+            })
           });
+          const directResult = await directResponse.json();
+          console.log('Railway direct result:', directResult);
+          
+          if (directResult.success) {
+            logs.push({
+              id: `log_${Date.now()}_${target.id}`,
+              targetName: target.name,
+              phone: phone,
+              status: 'success',
+              error: ''
+            });
+          } else {
+            logs.push({
+              id: `log_${Date.now()}_${target.id}`,
+              targetName: target.name,
+              phone: phone,
+              status: 'failed',
+              error: directResult.error || directResult.message || result.error || 'فشل الإرسال'
+            });
+          }
         }
       } catch (err: any) {
         logs.push({

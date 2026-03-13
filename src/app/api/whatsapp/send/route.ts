@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 30;
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { phone, message } = body;
+
+    console.log('[WA API v2] Received:', { phone, message });
 
     if (!phone || !message) {
       return NextResponse.json({
@@ -22,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     const railwayUrl = 'https://albaseem-whatsapp-production.up.railway.app/api/send-message';
     
-    console.log('[WA Send] Sending to:', formattedPhone);
+    console.log('[WA API v2] Sending to:', formattedPhone);
 
     const response = await fetch(railwayUrl, {
       method: 'POST',
@@ -36,12 +39,16 @@ export async function POST(request: NextRequest) {
     });
 
     const result = await response.json();
-    console.log('[WA Send] Result:', result);
+    console.log('[WA API v2] Railway response:', result);
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      }
+    });
 
   } catch (error: any) {
-    console.error('[WA Send] Error:', error);
+    console.error('[WA API v2] Error:', error);
     return NextResponse.json({
       success: false,
       error: error.message || 'Server error'
