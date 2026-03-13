@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AL-BASEEM - غير متصل</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            padding: 20px;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 400px;
+        }
+        
+        .logo {
+            font-size: 3rem;
+            font-weight: 900;
+            margin-bottom: 1rem;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .logo span {
+            color: #dc2626;
+        }
+        
+        .icon {
+            font-size: 5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+            color: #f87171;
+        }
+        
+        p {
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            line-height: 1.8;
+        }
+        
+        .retry-btn {
+            background: #dc2626;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .retry-btn:hover {
+            background: #b91c1c;
+            transform: scale(1.05);
+        }
+        
+        .features {
+            margin-top: 3rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+        
+        .feature {
+            background: rgba(255,255,255,0.05);
+            padding: 1rem;
+            border-radius: 10px;
+        }
+        
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-text {
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">AL-<span>B</span>ASEEM</div>
+        
+        <div class="icon">📡</div>
+        
+        <h1>غير متصل بالإنترنت</h1>
+        
+        <p>
+            يبدو أنك غير متصل بالإنترنت حالياً.<br>
+            تأكد من اتصالك بالإنترنت ثم حاول مرة أخرى.
+        </p>
+        
+        <button class="retry-btn" onclick="location.reload()">
+            🔄 إعادة المحاولة
+        </button>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">📱</div>
+                <div class="feature-text">يعمل على الموبايل</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">💻</div>
+                <div class="feature-text">يعمل على الكمبيوتر</div>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🌐</div>
+                <div class="feature-text">يعمل بالمتصفح</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
