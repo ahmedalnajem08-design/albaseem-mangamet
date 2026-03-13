@@ -1018,94 +1018,119 @@ export default function Home() {
   };
 
   const executeSendWhatsapp = async (isScheduled = false, scheduleDate = null) => {
-    if (!waMessageText && !waMessageImage) return alert('الرجاء كتابة رسالة أو إرفاق صورة.');
-    
-    if (waStatus !== 'connected') {
-      return alert('الواتساب غير متصل. يرجى الاتصال أولاً.');
+    // تحقق من وجود رسالة
+    if (!waMessageText && !waMessageImage) {
+      alert('الرجاء كتابة رسالة');
+      return;
     }
     
+    // تحقق من الاتصال
+    if (waStatus !== 'connected') {
+      alert('الواتساب غير متصل. تأكد من الاتصال أولاً.');
+      return;
+    }
+    
+    // جمع المستلمين
     let targets: any[] = [];
-    let targetLabel = '';
 
     if (waTargetType === 'all') {
-      targets = customers.map(c => ({ id: c.id, name: c.name, phone: c.phone, type: 'زبون' }));
-      targetLabel = 'جميع الزبائن';
+      targets = customers.map(c => ({ id: c.id, name: c.name, phone: c.phone }));
     } else if (waTargetType === 'city') {
-      if (!waSelectedCity) return alert('الرجاء اختيار المدينة.');
-      const cityCusts = customers.filter(c => c.cityIds.includes(waSelectedCity));
-      targets = cityCusts.map(c => ({ id: c.id, name: c.name, phone: c.phone, type: 'زبون' }));
-      targetLabel = `مدينة: ${cities.find(c=>c.id === waSelectedCity)?.name}`;
+      if (!waSelectedCity) {
+        alert('الرجاء اختيار المدينة');
+        return;
+      }
+      targets = customers.filter(c => c.cityIds.includes(waSelectedCity)).map(c => ({ id: c.id, name: c.name, phone: c.phone }));
     } else if (waTargetType === 'specific_customers') {
-      if (waSpecificCustomers.length === 0) return alert('الرجاء اختيار زبون واحد على الأقل.');
-      targets = customers.filter(c => waSpecificCustomers.includes(c.id)).map(c => ({ id: c.id, name: c.name, phone: c.phone, type: 'زبون' }));
-      targetLabel = `زبائن محددين (${targets.length})`;
-    } else if (waTargetType === 'employees') {
-      if (waSpecificEmployees.length === 0) return alert('الرجاء اختيار موظف واحد على الأقل.');
-      targets = EMPLOYEES.filter(e => waSpecificEmployees.includes(e.id)).map(e => ({ id: e.id, name: e.name, phone: 'N/A', type: 'موظف' }));
-      targetLabel = `موظفين محددين (${targets.length})`;
+      if (waSpecificCustomers.length === 0) {
+        alert('الرجاء اختيار زبون واحد على الأقل');
+        return;
+      }
+      targets = customers.filter(c => waSpecificCustomers.includes(c.id)).map(c => ({ id: c.id, name: c.name, phone: c.phone }));
     }
 
-    if (targets.length === 0) return alert('لا يوجد مستلمين مطابقين للاختيار.');
+    if (targets.length === 0) {
+      alert('لا يوجد مستلمين');
+      return;
+    }
 
-    if (isScheduled && scheduleDate) {
-      const newScheduled = {
-        id: `sch_${Date.now()}`,
-        text: waMessageText,
-        hasImage: !!waMessageImage,
-        targetLabel,
-        targets,
-        scheduleDate,
-        createdAt: new Date().toISOString()
-      };
-      setScheduledMessages([newScheduled, ...scheduledMessages]);
-      setIsScheduleModalOpen(false);
-      alert('تمت جدولة الرسالة بنجاح!');
-    } else {
-      // Send messages via WhatsApp server
-      const logs: Array<{id: string; targetName: string; phone: string; status: string; error: string}> = [];
+    // تأكيد الإرسال
+    const confirmMsg = `سيتم إرسال الرسالة إلى ${targets.length} مستلم\nهل تريد المتابعة؟`;
+    if (!window.confirm(confirmMsg)) return;
+
+    // إرسال الرسائل
+    const logs: Array<{id: string; targetName: string; phone: string; status: string; error: string}> = [];
+    
+    for (let i = 0; i < targets.length; i++) {
+      const target = targets[i];
       
-      for (const target of targets) {
-        const formattedPhone = formatPhoneForWhatsApp(target.phone);
-        try {
-          console.log('Attempting to send to:', target.name, 'phone:', target.phone);
-          await sendWhatsappMessage(target.phone, waMessageText);
+      // تنسيق الرقم
+      let phone = target.phone.replace(/\D/g, '');
+      if (phone.startsWith('0')) {
+        phone = '964' + phone.substring(1);
+      }
+      
+      try {
+        // إرسال عبر API
+        const response = await fetch('/api/whatsapp/send-message', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            phone: phone, 
+            message: waMessageText 
+          })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
           logs.push({
             id: `log_${Date.now()}_${target.id}`,
             targetName: target.name,
-            phone: formattedPhone,
+            phone: phone,
             status: 'success',
             error: ''
           });
-          // Delay between messages
-          await new Promise(resolve => setTimeout(resolve, waMessageDelay * 1000));
-        } catch (error: any) {
-          console.error(`Failed to send to ${target.name} (${formattedPhone}):`, error);
-          const errorMsg = error.message || 'فشل الإرسال';
-          alert(`فشل الإرسال إلى ${target.name}\nالرقم: ${formattedPhone}\nالخطأ: ${errorMsg}`);
+        } else {
           logs.push({
             id: `log_${Date.now()}_${target.id}`,
             targetName: target.name,
-            phone: formattedPhone,
+            phone: phone,
             status: 'failed',
-            error: errorMsg
+            error: result.error || 'فشل الإرسال'
           });
         }
+      } catch (err: any) {
+        logs.push({
+          id: `log_${Date.now()}_${target.id}`,
+          targetName: target.name,
+          phone: phone,
+          status: 'failed',
+          error: err.message || 'خطأ في الاتصال'
+        });
       }
       
-      setSendLogs(logs);
-      
-      const successCount = logs.filter(l => l.status === 'success').length;
-      const failCount = logs.filter(l => l.status === 'failed').length;
-      
-      if (failCount > 0) {
-        alert(`تم إرسال ${successCount} من ${targets.length} رسالة\nفشل ${failCount} رسالة`);
-      } else {
-        alert(`تم إرسال ${successCount} رسالة بنجاح!`);
+      // تأخير بين الرسائل
+      if (i < targets.length - 1) {
+        await new Promise(r => setTimeout(r, 3000));
       }
     }
     
+    setSendLogs(logs);
+    
+    // عرض النتيجة
+    const successCount = logs.filter(l => l.status === 'success').length;
+    const failCount = logs.filter(l => l.status === 'failed').length;
+    
+    if (failCount === 0) {
+      alert(`✅ تم إرسال ${successCount} رسالة بنجاح!`);
+    } else if (successCount === 0) {
+      alert(`❌ فشل إرسال جميع الرسائل (${failCount})\nالسبب: ${logs[0]?.error}`);
+    } else {
+      alert(`تم إرسال ${successCount} نجح و ${failCount} فشل`);
+    }
+    
     setWaMessageText('');
-    setWaMessageImage(null);
   };
 
   const handleCancelScheduledMsg = (id: string) => {
