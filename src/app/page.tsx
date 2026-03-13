@@ -1051,8 +1051,8 @@ export default function Home() {
       }
       
       try {
-        // إرسال عبر API proxy (يتجنب CORS)
-        const response = await fetch('/api/wa/send', {
+        // إرسال مباشرة إلى Railway (CORS معدل للسماح بجميع المصادر)
+        const response = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/send-message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1062,7 +1062,7 @@ export default function Home() {
         });
         
         const result = await response.json();
-        console.log('API result:', result);
+        console.log('Railway result:', result);
         
         if (result.success) {
           logs.push({
