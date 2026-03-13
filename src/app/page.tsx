@@ -1062,6 +1062,7 @@ export default function Home() {
       for (const target of targets) {
         const formattedPhone = formatPhoneForWhatsApp(target.phone);
         try {
+          console.log('Attempting to send to:', target.name, 'phone:', target.phone);
           await sendWhatsappMessage(target.phone, waMessageText);
           logs.push({
             id: `log_${Date.now()}_${target.id}`,
@@ -1074,12 +1075,14 @@ export default function Home() {
           await new Promise(resolve => setTimeout(resolve, waMessageDelay * 1000));
         } catch (error: any) {
           console.error(`Failed to send to ${target.name} (${formattedPhone}):`, error);
+          const errorMsg = error.message || 'فشل الإرسال';
+          alert(`فشل الإرسال إلى ${target.name}\nالرقم: ${formattedPhone}\nالخطأ: ${errorMsg}`);
           logs.push({
             id: `log_${Date.now()}_${target.id}`,
             targetName: target.name,
             phone: formattedPhone,
             status: 'failed',
-            error: error.message || 'فشل الإرسال'
+            error: errorMsg
           });
         }
       }
