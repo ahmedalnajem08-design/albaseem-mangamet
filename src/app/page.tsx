@@ -244,7 +244,7 @@ export default function Home() {
   const [waMessageImage, setWaMessageImage] = useState<File | null>(null);
   
   const [scheduledMessages, setScheduledMessages] = useState<any[]>(() => loadFromStorage('scheduledMessages', []));
-  const [sendLogs, setSendLogs] = useState<Array<{id: string; targetName: string; status: string; error: string}>>([]);
+  const [sendLogs, setSendLogs] = useState<Array<{id: string; targetName: string; phone: string; status: string; error: string}>>([]);
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
   // --- Settings States ---
@@ -948,21 +948,50 @@ export default function Home() {
     // This is now handled by polling
   };
   
+  // تنسيق رقم الهاتف للواتساب (إضافة رمز الدولة العراقي)
+  const formatPhoneForWhatsApp = (phone: string): string => {
+    if (!phone) return '';
+    
+    // إزالة جميع الأحرف غير الرقمية
+    let cleaned = phone.replace(/\D/g, '');
+    
+    // إذا كان الرقم يبدأ بـ 0 (رقم عراقي محلي)
+    if (cleaned.startsWith('0')) {
+      cleaned = '964' + cleaned.substring(1);
+    }
+    
+    // إذا كان الرقم يبدأ بـ 964 بالفعل
+    if (cleaned.startsWith('964')) {
+      return cleaned;
+    }
+    
+    // إذا كان الرقم لا يبدأ بـ 0 أو 964، نضيف 964
+    if (!cleaned.startsWith('964') && cleaned.length === 10) {
+      cleaned = '964' + cleaned;
+    }
+    
+    return cleaned;
+  };
+
   const sendWhatsappMessage = async (phone: string, message: string) => {
     if (!waServerUrl || waStatus !== 'connected') {
       throw new Error('الواتساب غير متصل');
     }
     
+    // تنسيق الرقم للواتساب
+    const formattedPhone = formatPhoneForWhatsApp(phone);
+    console.log(`Sending to ${formattedPhone} (original: ${phone})`);
+    
     const response = await fetch(`${waServerUrl}/api/send-message`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, message })
+      body: JSON.stringify({ phone: formattedPhone, message })
     });
     
     const result = await response.json();
     
     if (!result.success) {
-      throw new Error(result.error || 'فشل الإرسال');
+      throw new Error(result.error || result.message || 'فشل الإرسال');
     }
     
     return result;
@@ -1013,23 +1042,27 @@ export default function Home() {
       alert('تمت جدولة الرسالة بنجاح!');
     } else {
       // Send messages via WhatsApp server
-      const logs: Array<{id: string; targetName: string; status: string; error: string}> = [];
+      const logs: Array<{id: string; targetName: string; phone: string; status: string; error: string}> = [];
       
       for (const target of targets) {
+        const formattedPhone = formatPhoneForWhatsApp(target.phone);
         try {
           await sendWhatsappMessage(target.phone, waMessageText);
           logs.push({
             id: `log_${Date.now()}_${target.id}`,
             targetName: target.name,
+            phone: formattedPhone,
             status: 'success',
             error: ''
           });
           // Delay between messages
           await new Promise(resolve => setTimeout(resolve, waMessageDelay * 1000));
         } catch (error: any) {
+          console.error(`Failed to send to ${target.name} (${formattedPhone}):`, error);
           logs.push({
             id: `log_${Date.now()}_${target.id}`,
             targetName: target.name,
+            phone: formattedPhone,
             status: 'failed',
             error: error.message || 'فشل الإرسال'
           });
@@ -1039,7 +1072,13 @@ export default function Home() {
       setSendLogs(logs);
       
       const successCount = logs.filter(l => l.status === 'success').length;
-      alert(`تم إرسال ${successCount} من ${targets.length} رسالة`);
+      const failCount = logs.filter(l => l.status === 'failed').length;
+      
+      if (failCount > 0) {
+        alert(`تم إرسال ${successCount} من ${targets.length} رسالة\nفشل ${failCount} رسالة`);
+      } else {
+        alert(`تم إرسال ${successCount} رسالة بنجاح!`);
+      }
     }
     
     setWaMessageText('');
@@ -1765,8 +1804,11 @@ export default function Home() {
                   <div className="max-h-64 overflow-y-auto space-y-2 pr-2">
                     {sendLogs.map(log => (
                       <div key={log.id} className={`p-3 rounded-lg border flex items-center justify-between ${log.status === 'success' ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
-                        <div className="font-bold text-gray-800 flex items-center gap-2">
-                          <User size={16} className="text-gray-500"/> {log.targetName}
+                        <div className="font-bold text-gray-800 flex flex-col">
+                          <div className="flex items-center gap-2">
+                            <User size={16} className="text-gray-500"/> {log.targetName}
+                          </div>
+                          <span className="text-xs text-gray-500 mt-1">{log.phone}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           {log.status === 'success' ? (
