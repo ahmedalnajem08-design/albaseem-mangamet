@@ -825,25 +825,16 @@ export default function Home() {
   };
 
   const handleConnectWhatsapp = async () => {
-    if (!waServerUrl) {
-      // Ask for server URL
-      const serverUrl = prompt('أدخل رابط سيرفر الواتساب (مثال: http://123.456.789.123:3000):');
-      if (!serverUrl) return;
-      setWaServerUrl(serverUrl);
-      localStorage.setItem('waServerUrl', serverUrl);
-      await connectToWaServer(serverUrl);
-    } else {
-      await connectToWaServer(waServerUrl);
-    }
+    await connectToWaServer();
   };
   
-  const connectToWaServer = async (serverUrl: string) => {
+  const connectToWaServer = async () => {
     setWaLoading(true);
     setWaStatus('connecting');
     
     try {
-      // Check status
-      const statusRes = await fetch(`${serverUrl}/api/status`);
+      // Check status via proxy
+      const statusRes = await fetch('/api/wa/status');
       const statusData = await statusRes.json();
       
       if (statusData.ready) {
@@ -855,37 +846,37 @@ export default function Home() {
         return;
       }
       
-      // Get QR Code
-      const qrRes = await fetch(`${serverUrl}/api/qr`);
+      // Get QR Code via proxy
+      const qrRes = await fetch('/api/wa/qr');
       const qrData = await qrRes.json();
       
       if (qrData.qr) {
         setWaQrCode(qrData.qr);
         // Start polling for connection
-        startWaPolling(serverUrl);
+        startWaPolling();
       } else {
         // Wait and retry
-        setTimeout(() => connectToWaServer(serverUrl), 3000);
+        setTimeout(() => connectToWaServer(), 3000);
       }
     } catch (error) {
       console.error('Connection error:', error);
-      alert('فشل الاتصال بالسيرفر. تأكد من أن السيرفر يعمل والرابط صحيح.');
+      alert('فشل الاتصال بالسيرفر. تأكد من أن السيرفر يعمل.');
       setWaStatus('disconnected');
     }
     
     setWaLoading(false);
   };
   
-  const startWaPolling = (serverUrl: string) => {
+  const startWaPolling = () => {
     // Clear existing interval
     if (waPollingInterval) {
       clearInterval(waPollingInterval);
     }
     
-    // Poll every 2 seconds
+    // Poll every 2 seconds via proxy
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/status`);
+        const res = await fetch('/api/wa/status');
         const data = await res.json();
         
         if (data.ready) {
@@ -895,7 +886,7 @@ export default function Home() {
           clearInterval(interval);
         } else if (data.status === 'qr') {
           // Get updated QR
-          const qrRes = await fetch(`${serverUrl}/api/qr`);
+          const qrRes = await fetch('/api/wa/qr');
           const qrData = await qrRes.json();
           if (qrData.qr) setWaQrCode(qrData.qr);
         }
@@ -909,17 +900,8 @@ export default function Home() {
   
   // Auto-connect to WhatsApp server on mount
   useEffect(() => {
-    const savedUrl = localStorage.getItem('waServerUrl');
-    const serverUrl = savedUrl || 'https://albaseem-whatsapp-production.up.railway.app';
-    
-    if (!savedUrl) {
-      localStorage.setItem('waServerUrl', serverUrl);
-    }
-    
-    setWaServerUrl(serverUrl);
-    
-    // Check connection status
-    fetch(`${serverUrl}/api/status`)
+    // Check connection status via API proxy
+    fetch('/api/wa/status')
       .then(res => res.json())
       .then(data => {
         console.log('WhatsApp server status:', data);
@@ -936,12 +918,10 @@ export default function Home() {
         clearInterval(waPollingInterval);
       }
       
-      if (waServerUrl) {
-        try {
-          await fetch(`${waServerUrl}/api/disconnect`, { method: 'POST' });
-        } catch (error) {
-          console.error('Disconnect error:', error);
-        }
+      try {
+        await fetch('https://albaseem-whatsapp-production.up.railway.app/api/logout', { method: 'POST' });
+      } catch (error) {
+        console.error('Disconnect error:', error);
       }
       
       setWaStatus('disconnected');
@@ -1071,8 +1051,8 @@ export default function Home() {
       }
       
       try {
-        // إرسال مباشرة إلى Railway (يتجاوز Vercel)
-        const response = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/send-message', {
+        // إرسال عبر API proxy (يتجنب CORS)
+        const response = await fetch('/api/wa/send', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1082,7 +1062,7 @@ export default function Home() {
         });
         
         const result = await response.json();
-        console.log('Railway result:', result);
+        console.log('API result:', result);
         
         if (result.success) {
           logs.push({
