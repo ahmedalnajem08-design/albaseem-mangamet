@@ -1051,10 +1051,11 @@ export default function Home() {
       }
       
       try {
-        // إرسال مباشرة إلى Railway (CORS معدل للسماح بجميع المصادر)
+        // إرسال مباشرة إلى Railway مع CORS
         const response = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/send-message', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          mode: 'cors',
           body: JSON.stringify({ 
             phone: phone, 
             message: waMessageText 
