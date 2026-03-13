@@ -1840,8 +1840,38 @@ export default function Home() {
                   <button onClick={() => executeSendWhatsapp(false)} className="flex-1 bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600 transition shadow-sm flex items-center justify-center gap-2">
                     <Send size={20}/> إرسال الآن
                   </button>
-                  <button onClick={() => setIsScheduleModalOpen(true)} className="flex-1 bg-blue-50 text-blue-600 border border-blue-200 py-3 rounded-xl font-bold hover:bg-blue-100 transition shadow-sm flex items-center justify-center gap-2">
-                    <Clock size={20}/> جدولة الرسالة
+                  <button onClick={() => {
+                    // إرسال مباشر عبر فتح WhatsApp Web
+                    if (!waMessageText) {
+                      alert('الرجاء كتابة رسالة');
+                      return;
+                    }
+                    
+                    let targets: any[] = [];
+                    if (waTargetType === 'all') {
+                      targets = customers;
+                    } else if (waTargetType === 'city' && waSelectedCity) {
+                      targets = customers.filter(c => c.cityIds.includes(waSelectedCity));
+                    } else if (waTargetType === 'specific_customers') {
+                      targets = customers.filter(c => waSpecificCustomers.includes(c.id));
+                    }
+                    
+                    if (targets.length === 0) {
+                      alert('لا يوجد مستلمين');
+                      return;
+                    }
+                    
+                    // فتح WhatsApp للأول
+                    const first = targets[0];
+                    let phone = first.phone.replace(/\D/g, '');
+                    if (phone.startsWith('0')) phone = '964' + phone.substring(1);
+                    
+                    const url = `https://wa.me/${phone}?text=${encodeURIComponent(waMessageText)}`;
+                    window.open(url, '_blank');
+                    
+                    alert(`سيتم فتح WhatsApp للمرسل الأول: ${first.name}\nلإرسال للباقي، استخدم زر "إرسال الآن" بعد قليل`);
+                  }} className="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-bold hover:bg-emerald-600 transition shadow-sm flex items-center justify-center gap-2">
+                    <MessageCircle size={20}/> فتح واتساب
                   </button>
                 </div>
               </div>
