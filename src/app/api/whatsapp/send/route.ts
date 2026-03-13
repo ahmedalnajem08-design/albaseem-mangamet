@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const maxDuration = 30; // 30 seconds timeout
+export const maxDuration = 30;
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,43 +20,31 @@ export async function POST(request: NextRequest) {
       formattedPhone = '964' + formattedPhone.substring(1);
     }
 
-    const serverUrl = 'https://albaseem-whatsapp-production.up.railway.app';
+    const railwayUrl = 'https://albaseem-whatsapp-production.up.railway.app/api/send-message';
     
-    console.log(`[WhatsApp API] Sending to ${formattedPhone} via ${serverUrl}`);
+    console.log('[WA Send] Sending to:', formattedPhone);
 
-    // Use AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000);
+    const response = await fetch(railwayUrl, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        phone: formattedPhone, 
+        message 
+      }),
+    });
 
-    try {
-      const response = await fetch(`${serverUrl}/api/send-message`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: formattedPhone, message }),
-        signal: controller.signal,
-        cache: 'no-store'
-      });
+    const result = await response.json();
+    console.log('[WA Send] Result:', result);
 
-      clearTimeout(timeoutId);
-      
-      const result = await response.json();
-      console.log('[WhatsApp API] Server response:', result);
-
-      return NextResponse.json(result);
-    } catch (fetchError: any) {
-      clearTimeout(timeoutId);
-      console.error('[WhatsApp API] Fetch error:', fetchError);
-      return NextResponse.json({
-        success: false,
-        error: fetchError.name === 'AbortError' ? 'Request timeout' : 'Failed to connect to WhatsApp server'
-      }, { status: 504 });
-    }
+    return NextResponse.json(result);
 
   } catch (error: any) {
-    console.error('[WhatsApp API] Error:', error);
+    console.error('[WA Send] Error:', error);
     return NextResponse.json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: error.message || 'Server error'
     }, { status: 500 });
   }
 }
