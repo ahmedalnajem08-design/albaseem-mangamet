@@ -1071,8 +1071,8 @@ export default function Home() {
       }
       
       try {
-        // إرسال عبر Vercel API
-        const response = await fetch('/api/whatsapp/send', {
+        // إرسال عبر API جديد
+        const response = await fetch('/api/send-msg', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -1093,36 +1093,13 @@ export default function Home() {
             error: ''
           });
         } else {
-          // إذا فشل من Vercel، جرب Railway مباشرة
-          console.log('Vercel failed, trying Railway directly...');
-          const directResponse = await fetch('https://albaseem-whatsapp-production.up.railway.app/api/send-message', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              phone: phone, 
-              message: waMessageText 
-            })
+          logs.push({
+            id: `log_${Date.now()}_${target.id}`,
+            targetName: target.name,
+            phone: phone,
+            status: 'failed',
+            error: result.error || result.message || 'فشل الإرسال'
           });
-          const directResult = await directResponse.json();
-          console.log('Railway direct result:', directResult);
-          
-          if (directResult.success) {
-            logs.push({
-              id: `log_${Date.now()}_${target.id}`,
-              targetName: target.name,
-              phone: phone,
-              status: 'success',
-              error: ''
-            });
-          } else {
-            logs.push({
-              id: `log_${Date.now()}_${target.id}`,
-              targetName: target.name,
-              phone: phone,
-              status: 'failed',
-              error: directResult.error || directResult.message || result.error || 'فشل الإرسال'
-            });
-          }
         }
       } catch (err: any) {
         logs.push({
