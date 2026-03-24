@@ -149,3 +149,4 @@ export default function RootLayout({
     </html>
   );
 }
+// v2.0 - No WhatsApp - 1774379706
