@@ -1837,6 +1837,11 @@ export default function Home() {
                           {task.isVirtual && <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">متكررة</span>}
                         </div>
                         <p className="text-sm text-gray-500">{task.details}</p>
+                        {task.status === 'delayed' && task.delayReason && (
+                          <p className="text-sm text-orange-600 mt-1 flex items-center gap-1">
+                            <AlertTriangle size={14}/> سبب التأجيل: {task.delayReason}
+                          </p>
+                        )}
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
                           <span className="flex items-center gap-1"><Calendar size={12}/> {task.date}</span>
                           {!task.isFullDay && task.startTime && (
@@ -1878,6 +1883,15 @@ export default function Home() {
                               </button>
                             )}
                           </>
+                        )}
+                        {task.status === 'pending' && USER_PERMISSIONS.delayTask && (
+                          <button 
+                            onClick={() => setTaskActionModal({ type: 'reschedule', task })}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                            title="إعادة جدولة مع تغيير الوقت"
+                          >
+                            <RefreshCw size={18}/>
+                          </button>
                         )}
                         {task.status === 'delayed' && (
                           <button 
