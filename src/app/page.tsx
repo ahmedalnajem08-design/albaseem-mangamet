@@ -132,7 +132,8 @@ const saveToStorage = (key: string, value: any) => {
 
 export default function Home() {
   // --- Auth States ---
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [isSessionLoading, setIsSessionLoading] = useState(true);
   const CURRENT_USER = currentUser;
 
   const [loginPhone, setLoginPhone] = useState('');
@@ -237,14 +238,17 @@ export default function Home() {
 
   // --- Load saved user session on mount ---
   useEffect(() => {
-    const savedUser = localStorage.getItem('albaseem_current_user');
-    if (savedUser) {
-      try {
-        setCurrentUser(JSON.parse(savedUser));
-      } catch (e) {
-        console.error('Error parsing saved user:', e);
-        localStorage.removeItem('albaseem_current_user');
+    try {
+      const savedUser = localStorage.getItem('albaseem_current_user');
+      if (savedUser) {
+        const user = JSON.parse(savedUser);
+        setCurrentUser(user);
       }
+    } catch (e) {
+      console.error('Error loading saved user:', e);
+      localStorage.removeItem('albaseem_current_user');
+    } finally {
+      setIsSessionLoading(false);
     }
   }, []);
 
@@ -1230,6 +1234,15 @@ export default function Home() {
   );
 
   // --- Render logic ---
+
+  // Show loading while checking session
+  if (isSessionLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4" dir="rtl">
+        <div className="text-white text-xl font-bold animate-pulse">جاري التحميل...</div>
+      </div>
+    );
+  }
 
   if (!CURRENT_USER) {
     return (
