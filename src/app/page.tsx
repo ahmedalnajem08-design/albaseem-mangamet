@@ -1144,8 +1144,11 @@ export default function Home() {
 
   const filteredDashboardTasks = currentDashboardTasks.filter(t => {
     if (taskActiveTab === 'all') return true;
-    if (taskActiveTab === 'active') return t.status === 'active' && t.date === taskDateFilter;
-    if (taskActiveTab === 'completed') return t.status === 'completed' && t.date === taskDateFilter;
+    if (taskActiveTab === 'active') return t.status === 'active';
+    if (taskActiveTab === 'pending') return t.status === 'pending';
+    if (taskActiveTab === 'completed') return t.status === 'completed';
+    if (taskActiveTab === 'delayed') return t.status === 'delayed';
+    if (taskActiveTab === 'canceled') return t.status === 'canceled';
     return t.status === taskActiveTab;
   });
 
@@ -1791,145 +1794,36 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Date Filter */}
-              <div className="flex items-center gap-4 mb-6">
-                <label className="font-medium">التاريخ:</label>
-                <input 
-                  type="date" 
-                  value={taskDateFilter}
-                  onChange={(e) => setTaskDateFilter(e.target.value)}
-                  className="border rounded-lg p-2"
-                />
-              </div>
-
-              {/* Tasks List */}
-              <div className="space-y-3">
-                {filteredDashboardTasks.map(task => (
-                  <div key={task.id} className={`bg-white p-4 rounded-xl border shadow-sm ${task.isVirtual ? 'border-dashed border-blue-300' : ''}`}>
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h4 className="font-bold">{task.title}</h4>
-                          {task.isVirtual && <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded">متكررة</span>}
-                        </div>
-                        <p className="text-sm text-gray-500">{task.details}</p>
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                          <span className="flex items-center gap-1"><Calendar size={12}/> {task.date}</span>
-                          {!task.isFullDay && task.startTime && (
-                            <span className="flex items-center gap-1"><Clock size={12}/> {task.startTime} - {task.endTime}</span>
-                          )}
-                          <span className={`px-2 py-0.5 rounded ${
-                            task.status === 'active' ? 'bg-green-100 text-green-600' :
-                            task.status === 'pending' ? 'bg-yellow-100 text-yellow-600' :
-                            task.status === 'completed' ? 'bg-blue-100 text-blue-600' :
-                            task.status === 'delayed' ? 'bg-orange-100 text-orange-600' :
-                            'bg-red-100 text-red-600'
-                          }`}>
-                            {task.status === 'active' ? 'نشطة' :
-                             task.status === 'pending' ? 'معلقة' :
-                             task.status === 'completed' ? 'مكتملة' :
-                             task.status === 'delayed' ? 'مؤجلة' : 'ملغاة'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        {task.status === 'active' && (
-                          <>
-                            {USER_PERMISSIONS.addTask && (
-                              <button 
-                                onClick={() => setTaskActionModal({ type: 'complete', task })}
-                                className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
-                                title="إكمال"
-                              >
-                                <CheckCircle size={18}/>
-                              </button>
-                            )}
-                            {USER_PERMISSIONS.delayTask && (
-                              <button 
-                                onClick={() => setTaskActionModal({ type: 'delay', task })}
-                                className="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg"
-                                title="تأجيل"
-                              >
-                                <Clock size={18}/>
-                              </button>
-                            )}
-                          </>
-                        )}
-                        {task.status === 'delayed' && (
-                          <button 
-                            onClick={() => setTaskActionModal({ type: 'reschedule', task })}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                            title="إعادة جدولة"
-                          >
-                            <RefreshCw size={18}/>
-                          </button>
-                        )}
-                        {(task.status === 'active' || task.status === 'pending') && USER_PERMISSIONS.cancelTask && (
-                          <button 
-                            onClick={() => setTaskActionModal({ type: 'cancel', task })}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                            title="إلغاء"
-                          >
-                            <XCircle size={18}/>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-                {filteredDashboardTasks.length === 0 && (
-                  <div className="text-center py-12 text-gray-400">لا توجد مهام</div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Tasks Section */}
-          {appSection === 'tasks' && USER_PERMISSIONS.viewTasksSection && (
-            <div className="animate-in fade-in">
-              <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">مهام الموظفين</h2>
-                {USER_PERMISSIONS.addTask && (
-                  <button 
-                    onClick={() => setIsAddTaskOpen(true)}
-                    className="flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700 transition"
+              {/* Filters Row */}
+              <div className="flex flex-wrap items-center gap-4 mb-6">
+                {/* Employee Filter */}
+                <div className="flex items-center gap-2">
+                  <label className="font-medium">الموظف:</label>
+                  <select 
+                    value={selectedTaskEmployee?.id || ''}
+                    onChange={(e) => {
+                      const emp = employeesList.find(emp => emp.id === e.target.value);
+                      setSelectedTaskEmployee(emp || null);
+                    }}
+                    className="border rounded-lg p-2 min-w-[150px]"
                   >
-                    <Plus size={20}/> إضافة مهمة
-                  </button>
-                )}
-              </div>
+                    <option value="">اختر موظف</option>
+                    {employeesList.map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
+                </div>
 
-              {/* Task Tabs */}
-              <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-                {[
-                  { id: 'active', label: 'النشطة' },
-                  { id: 'pending', label: 'المعلقة' },
-                  { id: 'completed', label: 'المكتملة' },
-                  { id: 'delayed', label: 'المؤجلة' },
-                  { id: 'canceled', label: 'الملغاة' },
-                  { id: 'all', label: 'الكل' },
-                ].map(tab => (
-                  <button 
-                    key={tab.id}
-                    onClick={() => setTaskActiveTab(tab.id)}
-                    className={`px-4 py-2 rounded-lg font-bold whitespace-nowrap transition ${
-                      taskActiveTab === tab.id ? 'bg-red-600 text-white' : 'bg-white border hover:bg-gray-50'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Date Filter */}
-              <div className="flex items-center gap-4 mb-6">
-                <label className="font-medium">التاريخ:</label>
-                <input 
-                  type="date" 
-                  value={taskDateFilter}
-                  onChange={(e) => setTaskDateFilter(e.target.value)}
-                  className="border rounded-lg p-2"
-                />
+                {/* Date Filter */}
+                <div className="flex items-center gap-2">
+                  <label className="font-medium">التاريخ:</label>
+                  <input 
+                    type="date" 
+                    value={taskDateFilter}
+                    onChange={(e) => setTaskDateFilter(e.target.value)}
+                    className="border rounded-lg p-2"
+                  />
+                </div>
               </div>
 
               {/* Tasks List */}
