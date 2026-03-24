@@ -87,37 +87,16 @@ export interface Note {
   date: string;
 }
 
-export interface ScheduledMessage {
-  id: string;
-  text: string;
-  hasImage: boolean;
-  targetLabel: string;
-  targets: Array<{ id: string; name: string; phone: string; type: string }>;
-  scheduleDate: string;
-  createdAt: string;
-}
-
-export interface SendLog {
-  id: string;
-  targetName: string;
-  status: 'success' | 'failed';
-  error?: string;
-}
-
 export interface Permission {
   id: string;
   label: string;
 }
 
-export type WhatsappStatus = 'disconnected' | 'connecting' | 'connected';
-
-export type AppSection = 'dashboard' | 'crm' | 'tasks' | 'whatsapp' | 'reminders' | 'notes' | 'settings';
+export type AppSection = 'dashboard' | 'crm' | 'tasks' | 'reminders' | 'notes' | 'settings';
 
 export type TasksSubSection = 'myTasks' | 'employeeTasks' | 'recurringTasks';
 
-export type WhatsappSubSection = 'send' | 'scheduled';
-
-export type SettingsTab = 'users' | 'backup' | 'whatsapp' | 'import';
+export type SettingsTab = 'users' | 'backup' | 'import';
 
 export type RemindersTab = 'today' | 'active' | 'completed' | 'pending' | 'all';
 

@@ -1197,9 +1197,6 @@ export default function Home() {
         <a href={`tel:${customer.phone}`} className="flex-1 flex justify-center items-center gap-2 bg-blue-50 text-blue-600 p-2 rounded-lg hover:bg-blue-100 transition">
           <Phone size={16} /> <span className="text-sm font-medium">اتصال</span>
         </a>
-        <a href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="flex-1 flex justify-center items-center gap-2 bg-green-50 text-green-600 p-2 rounded-lg hover:bg-green-100 transition">
-          <MessageCircle size={16} /> <span className="text-sm font-medium">واتساب</span>
-        </a>
         {customer.locationLink && (
           <a href={customer.locationLink} target="_blank" rel="noreferrer" className="flex-1 flex justify-center items-center gap-2 bg-gray-50 text-gray-600 p-2 rounded-lg hover:bg-gray-100 transition">
             <MapPin size={16} /> <span className="text-sm font-medium">الموقع</span>
@@ -1581,9 +1578,6 @@ export default function Home() {
                           <div className="mt-6 flex gap-2">
                             <a href={`tel:${selectedCustomer.phone}`} className="flex-1 flex items-center justify-center gap-2 bg-blue-500 text-white p-3 rounded-xl hover:bg-blue-600 transition">
                               <Phone size={18}/> اتصال
-                            </a>
-                            <a href={`https://wa.me/${selectedCustomer.phone.replace(/[^0-9]/g, '')}`} target="_blank" rel="noreferrer" className="flex-1 flex items-center justify-center gap-2 bg-green-500 text-white p-3 rounded-xl hover:bg-green-600 transition">
-                              <MessageCircle size={18}/> واتساب
                             </a>
                           </div>
                         </div>

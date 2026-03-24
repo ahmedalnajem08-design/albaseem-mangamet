@@ -29,8 +29,8 @@ export const metadata: Metadata = {
     default: "AL-BASEEM | نظام إدارة التجارة",
     template: "%s | AL-BASEEM",
   },
-  description: "نظام إدارة شامل للتجارة العامة مع تكامل واتساب - إدارة الزبائن، المهام، التذكيرات، والرسائل",
-  keywords: ["إدارة", "تجارة", "زبائن", "مهام", "واتساب", "عراق", "البصيم"],
+  description: "نظام إدارة شامل للتجارة العامة - إدارة الزبائن، المهام، والتذكيرات",
+  keywords: ["إدارة", "تجارة", "زبائن", "مهام", "عراق", "البصيم"],
   authors: [{ name: "AL-BASEEM Team" }],
   creator: "Ahmed Al Najem",
   publisher: "AL-BASEEM",
@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     url: "https://albaseem.vercel.app",
     siteName: "AL-BASEEM",
     title: "AL-BASEEM | نظام إدارة التجارة",
-    description: "نظام إدارة شامل للتجارة العامة مع تكامل واتساب",
+    description: "نظام إدارة شامل للتجارة العامة",
     images: [
       {
         url: "/icons/icon-512x512.png",
@@ -85,7 +85,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "AL-BASEEM | نظام إدارة التجارة",
-    description: "نظام إدارة شامل للتجارة العامة مع تكامل واتساب",
+    description: "نظام إدارة شامل للتجارة العامة",
     images: ["/icons/icon-512x512.png"],
   },
   
