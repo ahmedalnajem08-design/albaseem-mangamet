@@ -235,6 +235,19 @@ export default function Home() {
   const [noteSearch, setNoteSearch] = useState('');
   const [newNoteText, setNewNoteText] = useState('');
 
+  // --- Load saved user session on mount ---
+  useEffect(() => {
+    const savedUser = localStorage.getItem('albaseem_current_user');
+    if (savedUser) {
+      try {
+        setCurrentUser(JSON.parse(savedUser));
+      } catch (e) {
+        console.error('Error parsing saved user:', e);
+        localStorage.removeItem('albaseem_current_user');
+      }
+    }
+  }, []);
+
   // --- Load data from API on mount ---
   useEffect(() => {
     const loadData = async () => {
@@ -401,6 +414,7 @@ export default function Home() {
       
       if (result.success) {
         setCurrentUser(result.user);
+        localStorage.setItem('albaseem_current_user', JSON.stringify(result.user));
         setLoginError('');
         setLoginPhone('');
         setLoginPassword('');
@@ -411,6 +425,12 @@ export default function Home() {
       console.error('Login error:', error);
       setLoginError('حدث خطأ أثناء تسجيل الدخول');
     }
+  };
+
+  // --- Logout Handler ---
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('albaseem_current_user');
   };
 
   // --- Handlers ---
@@ -1300,7 +1320,7 @@ export default function Home() {
           <Menu size={24} />
         </button>
         <h1 className="text-xl font-bold text-red-600">AL-BASEEM</h1>
-        <button onClick={() => { setCurrentUser(null); }} className="p-2 hover:bg-gray-100 rounded-lg text-red-500">
+        <button onClick={handleLogout} className="p-2 hover:bg-gray-100 rounded-lg text-red-500">
           <LogOut size={20} />
         </button>
       </div>
@@ -1345,7 +1365,7 @@ export default function Home() {
               </div>
             </div>
             <button 
-              onClick={() => { setCurrentUser(null); }}
+              onClick={handleLogout}
               className="w-full flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 py-2 rounded-lg transition"
             >
               <LogOut size={18}/> تسجيل الخروج
