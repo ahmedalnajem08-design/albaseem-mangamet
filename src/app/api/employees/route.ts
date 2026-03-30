@@ -70,10 +70,29 @@ export async function PUT(request: NextRequest) {
   try {
     const supabase = await createClient()
     const body = await request.json()
-    const { id, name, phone, password, role, permissions } = body
+    const { id, name, phone, password, role, permissions, currentUserId } = body
 
     if (!id) {
       return NextResponse.json({ error: 'ID مطلوب' }, { status: 400 })
+    }
+
+    // التحقق من أن المستخدم الذي يتم تعديله
+    const { data: targetUser, error: fetchError } = await supabase
+      .from('employees')
+      .select('id, role')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !targetUser) {
+      return NextResponse.json({ error: 'المستخدم غير موجود' }, { status: 404 })
+    }
+
+    // حماية المدير العام - لا يمكن لأحد تعديل صلاحياته أو كلمة مروره إلا هو نفسه
+    if (targetUser.role === 'manager' && currentUserId !== id) {
+      return NextResponse.json(
+        { error: 'لا يمكنك تعديل بيانات المدير العام. فقط المدير العام يستطيع تعديل بياناته بنفسه.' },
+        { status: 403 }
+      )
     }
 
     const updateData: Record<string, unknown> = {}
@@ -110,6 +129,25 @@ export async function DELETE(request: NextRequest) {
 
     if (!id) {
       return NextResponse.json({ error: 'ID مطلوب' }, { status: 400 })
+    }
+
+    // التحقق من أن المستخدم الذي يتم حذفه
+    const { data: targetUser, error: fetchError } = await supabase
+      .from('employees')
+      .select('id, role')
+      .eq('id', id)
+      .single()
+
+    if (fetchError || !targetUser) {
+      return NextResponse.json({ error: 'المستخدم غير موجود' }, { status: 404 })
+    }
+
+    // منع حذف المدير العام نهائياً
+    if (targetUser.role === 'manager') {
+      return NextResponse.json(
+        { error: 'لا يمكن حذف حساب المدير العام' },
+        { status: 403 }
+      )
     }
 
     const { error } = await supabase

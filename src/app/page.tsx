@@ -1078,6 +1078,12 @@ export default function Home() {
     const formData = new FormData(e.target as HTMLFormElement);
     const selectedPerms = formData.getAll('permissions');
     
+    // حماية المدير العام - لا يمكن لأحد تعديل صلاحياته أو كلمة مروره إلا هو نفسه
+    if (editingUser && (editingUser as any).role === 'manager' && (editingUser as any).id !== CURRENT_USER?.id) {
+      alert('لا يمكنك تعديل بيانات المدير العام. فقط المدير العام يستطيع تعديل بياناته بنفسه.');
+      return;
+    }
+    
     const userData = {
       name: formData.get('name'),
       phone: formData.get('phone'),
@@ -1091,7 +1097,7 @@ export default function Home() {
         const response = await fetch('/api/employees', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: (editingUser as any).id, ...userData })
+          body: JSON.stringify({ id: (editingUser as any).id, currentUserId: CURRENT_USER?.id, ...userData })
         });
         const result = await response.json();
         if (result.success) {
@@ -2272,7 +2278,7 @@ export default function Home() {
                             <td className="p-3 text-gray-500">{emp.permissions.length} صلاحية</td>
                             <td className="p-3">
                               <div className="flex gap-1">
-                                {USER_PERMISSIONS.editUser && (
+                                {USER_PERMISSIONS.editUser && (emp.role !== 'manager' || emp.id === CURRENT_USER?.id) && (
                                   <button 
                                     onClick={() => { setEditingUser(emp); setIsUserModalOpen(true); }}
                                     className="p-2 text-blue-500 hover:bg-blue-50 rounded"
@@ -2280,7 +2286,7 @@ export default function Home() {
                                     <Edit size={16}/>
                                   </button>
                                 )}
-                                {USER_PERMISSIONS.deleteUser && emp.id !== CURRENT_USER?.id && (
+                                {USER_PERMISSIONS.deleteUser && emp.id !== CURRENT_USER?.id && emp.role !== 'manager' && (
                                   <button 
                                     onClick={() => handleDeleteUser(emp.id)}
                                     className="p-2 text-red-500 hover:bg-red-50 rounded"
