@@ -1283,8 +1283,20 @@ export default function Home() {
     return allEmpTasks;
   };
 
-  const currentDashboardTasks = selectedTaskEmployee 
-    ? getProcessedTasksForEmployee(selectedTaskEmployee.id, taskDateFilter)
+  // للموظف: يرى مهامه فقط | للمدير: يرى كل المهام ويمكنه الفلترة
+  const isManager = CURRENT_USER?.role === 'manager';
+
+  const currentDashboardTasks = isManager
+    ? (selectedTaskEmployee
+        ? getProcessedTasksForEmployee(selectedTaskEmployee.id, taskDateFilter)
+        : tasks.filter(t => {
+            // للمدير بدون فلتر: يعرض كل المهام
+            const today = new Date().toISOString().split('T')[0];
+            if (t.status === 'active' && t.date < today) {
+              t.status = 'pending';
+            }
+            return true;
+          }))
     : (CURRENT_USER ? getProcessedTasksForEmployee(CURRENT_USER.id, taskDateFilter) : []);
 
   const filteredDashboardTasks = currentDashboardTasks.filter(t => {
@@ -1915,7 +1927,7 @@ export default function Home() {
           {appSection === 'tasks' && USER_PERMISSIONS.viewTasksSection && (
             <div className="animate-in fade-in">
               <div className="flex flex-wrap gap-4 justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold">مهام الموظفين</h2>
+                <h2 className="text-2xl font-bold">{isManager ? 'مهام الموظفين' : 'مهامي'}</h2>
                 {USER_PERMISSIONS.addTask && (
                   <button 
                     onClick={() => setIsAddTaskOpen(true)}
@@ -1950,23 +1962,25 @@ export default function Home() {
 
               {/* Filters Row */}
               <div className="flex flex-wrap items-center gap-4 mb-6">
-                {/* Employee Filter */}
-                <div className="flex items-center gap-2">
-                  <label className="font-medium">الموظف:</label>
-                  <select 
-                    value={selectedTaskEmployee?.id || ''}
-                    onChange={(e) => {
-                      const emp = employeesList.find(emp => emp.id === e.target.value);
-                      setSelectedTaskEmployee(emp || null);
-                    }}
-                    className="border rounded-lg p-2 min-w-[150px]"
-                  >
-                    <option value="">اختر موظف</option>
-                    {employeesList.map(emp => (
-                      <option key={emp.id} value={emp.id}>{emp.name}</option>
-                    ))}
-                  </select>
-                </div>
+                {/* Employee Filter - للمدير فقط */}
+                {isManager && (
+                  <div className="flex items-center gap-2">
+                    <label className="font-medium">الموظف:</label>
+                    <select 
+                      value={selectedTaskEmployee?.id || ''}
+                      onChange={(e) => {
+                        const emp = employeesList.find(emp => emp.id === e.target.value);
+                        setSelectedTaskEmployee(emp || null);
+                      }}
+                      className="border rounded-lg p-2 min-w-[150px]"
+                    >
+                      <option value="">كل الموظفين</option>
+                      {employeesList.map(emp => (
+                        <option key={emp.id} value={emp.id}>{emp.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 {/* Date Filter */}
                 <div className="flex items-center gap-2">
@@ -1997,6 +2011,11 @@ export default function Home() {
                           </p>
                         )}
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                          {isManager && task.employeeId && (
+                            <span className="flex items-center gap-1 text-purple-600">
+                              <User size={12}/> {employeesList.find(e => e.id === task.employeeId)?.name || 'موظف محذوف'}
+                            </span>
+                          )}
                           <span className="flex items-center gap-1"><Calendar size={12}/> {task.date}</span>
                           {!task.isFullDay && task.startTime && (
                             <span className="flex items-center gap-1"><Clock size={12}/> {task.startTime} - {task.endTime}</span>
