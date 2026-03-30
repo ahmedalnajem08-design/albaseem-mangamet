@@ -1,0 +1,2 @@
+# Ignore WhatsApp server files (standalone Node.js app)
+download/whatsapp-server/
