@@ -1,6 +1,6 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = 'albaseem-v1';
+const CACHE_NAME = 'albaseem-v2';
 const OFFLINE_URL = '/offline.html';
 
 // ملفات للتخزين المؤقت
@@ -9,7 +9,8 @@ const STATIC_ASSETS = [
   '/manifest.json',
   '/offline.html',
   '/icons/icon-192x192.png',
-  '/icons/icon-512x512.png'
+  '/icons/icon-512x512.png',
+  '/sounds/notification.mp3'
 ];
 
 // تثبيت Service Worker
@@ -118,18 +119,43 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// إشعارات Push
+// إشعارات Push - مع دعم الصوت
 self.addEventListener('push', (event) => {
+  console.log('Push notification received:', event);
+
   const data = event.data?.json() ?? {};
   const title = data.title || 'AL-BASEEM';
+  const body = data.body || 'لديك إشعار جديد';
+  const notificationData = data.data || {};
+
+  // خيارات الإشعار مع صوت
   const options = {
-    body: data.body || 'لديك إشعار جديد',
+    body: body,
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/badge-72x72.png',
-    vibrate: [100, 50, 100],
-    data: data.data || {},
-    actions: data.actions || []
+    badge: '/icons/icon-72x72.png',
+    vibrate: [200, 100, 200, 100, 200], // نمط اهتزاز قوي
+    tag: notificationData.type || 'general', // تجميع الإشعارات
+    renotify: true, // إشعار حتى لو نفس الـ tag
+    requireInteraction: true, // يبقى الإشعار حتى يضغط المستخدم
+    data: notificationData,
+    actions: [
+      { action: 'view', title: 'عرض' },
+      { action: 'dismiss', title: 'إغلاق' }
+    ],
+    // إعدادات Android
+    sound: '/sounds/notification.mp3',
+    // أولوية عالية
+    priority: 'high'
   };
+
+  // إرسال رسالة للـ clients لتشغيل الصوت
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'PLAY_NOTIFICATION_SOUND'
+      });
+    });
+  });
 
   event.waitUntil(
     self.registration.showNotification(title, options)
@@ -138,18 +164,65 @@ self.addEventListener('push', (event) => {
 
 // النقر على الإشعار
 self.addEventListener('notificationclick', (event) => {
+  console.log('Notification clicked:', event);
+
   event.notification.close();
+
+  const action = event.action;
+  const data = event.notification.data;
+
+  if (action === 'dismiss') {
+    return;
+  }
+
+  // تحديد الصفحة بناءً على نوع الإشعار
+  let url = '/';
+
+  if (data?.type === 'task') {
+    url = '/?section=tasks';
+  } else if (data?.type === 'reminder') {
+    url = '/?section=reminders';
+  }
+
   event.waitUntil(
-    self.clients.matchAll({ type: 'window' }).then((clientList) => {
-      // فتح نافذة موجودة أو إنشاء نافذة جديدة
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // البحث عن نافذة مفتوحة
       for (const client of clientList) {
-        if (client.url === '/' && 'focus' in client) {
+        if (client.url.includes(url.split('?')[0]) && 'focus' in client) {
+          client.postMessage({
+            type: 'NOTIFICATION_CLICKED',
+            data: data
+          });
           return client.focus();
         }
       }
+      // فتح نافذة جديدة
       if (self.clients.openWindow) {
-        return self.clients.openWindow('/');
+        return self.clients.openWindow(url);
       }
+    })
+  );
+});
+
+// إغلاق الإشعار
+self.addEventListener('notificationclose', (event) => {
+  console.log('Notification closed:', event);
+});
+
+// معالجة أخطاء push
+self.addEventListener('pushsubscriptionchange', (event) => {
+  console.log('Push subscription changed');
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+    }).then(subscription => {
+      // إرسال الاشتراك الجديد للسيرفر
+      return fetch('/api/notifications/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(subscription)
+      });
     })
   );
 });

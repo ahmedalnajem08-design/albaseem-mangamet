@@ -252,6 +252,127 @@ export default function Home() {
     }
   }, []);
 
+  // --- Setup Push Notifications ---
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const setupNotifications = async () => {
+      try {
+        // Check if notifications are supported
+        if (!('Notification' in window)) {
+          console.log('This browser does not support notifications');
+          return;
+        }
+
+        // Request notification permission
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          console.log('Notification permission denied');
+          return;
+        }
+
+        // Register service worker if not already registered
+        if ('serviceWorker' in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          
+          // Try to subscribe to push notifications
+          let subscription;
+          try {
+            // Check for existing subscription
+            subscription = await registration.pushManager.getSubscription();
+            
+            if (!subscription) {
+              // Create new subscription
+              // VAPID public key should be provided by the server
+              const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+              
+              if (vapidPublicKey) {
+                // Convert VAPID key to Uint8Array
+                const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+                
+                subscription = await registration.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey
+                });
+              }
+            }
+          } catch (e) {
+            console.log('Push subscription not available, using device ID fallback');
+          }
+          
+          // Get or create a unique token for this device
+          let token: string;
+          
+          if (subscription) {
+            // Use push subscription as token
+            token = JSON.stringify(subscription.toJSON());
+          } else {
+            // Fallback to device ID
+            token = localStorage.getItem('albaseem_device_id') || 
+              `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            localStorage.setItem('albaseem_device_id', token);
+          }
+
+          // Register the device token with the server
+          await fetch('/api/notifications/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              employeeId: currentUser.id,
+              token,
+              deviceInfo: navigator.userAgent
+            })
+          });
+
+          console.log('Push notifications setup complete');
+        }
+      } catch (error) {
+        console.error('Error setting up notifications:', error);
+      }
+    };
+
+    // Helper function to convert VAPID key
+    const urlBase64ToUint8Array = (base64String: string) => {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    };
+
+    setupNotifications();
+
+    // Listen for messages from service worker
+    const handleServiceWorkerMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'PLAY_NOTIFICATION_SOUND') {
+        // Play notification sound
+        const audio = new Audio('/sounds/notification.mp3');
+        audio.volume = 1;
+        audio.play().catch(e => console.log('Could not play sound:', e));
+      }
+      
+      if (event.data?.type === 'NOTIFICATION_CLICKED') {
+        // Handle notification click
+        console.log('Notification clicked:', event.data.data);
+      }
+    };
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+    }
+
+    return () => {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+      }
+    };
+  }, [currentUser]);
+
   // --- Load data from API on mount ---
   useEffect(() => {
     const loadData = async () => {

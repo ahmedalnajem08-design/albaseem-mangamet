@@ -55,12 +55,29 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// Helper function to send push notification
+async function sendPushNotification(employeeId: string, title: string, body: string, data: Record<string, string>) {
+  try {
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+    await fetch(`${baseUrl}/api/notifications/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employeeId, title, body, data })
+    })
+  } catch (error) {
+    console.error('Failed to send push notification:', error)
+  }
+}
+
 // POST - Create new task
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const body = await request.json()
-    const { employeeId, title, details, date, isFullDay, startTime, endTime } = body
+    const { employeeId, title, details, date, isFullDay, startTime, endTime, sendNotification } = body
 
     if (!employeeId || !title || !date) {
       return NextResponse.json({ error: 'الموظف والعنوان والتاريخ مطلوبون' }, { status: 400 })
@@ -83,6 +100,17 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    // Send push notification to the employee
+    if (sendNotification !== false) {
+      const timeStr = startTime ? ` - ${startTime}` : ''
+      sendPushNotification(
+        employeeId,
+        '📋 مهمة جديدة',
+        `${title}${timeStr} - ${date}`,
+        { type: 'task', taskId: data.id, date }
+      )
     }
 
     return NextResponse.json({ success: true, data })

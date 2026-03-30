@@ -1,6 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 
+// Helper function to send push notification
+async function sendPushNotification(employeeId: string, title: string, body: string, data: Record<string, string>) {
+  try {
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+    await fetch(`${baseUrl}/api/notifications/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ employeeId, title, body, data })
+    })
+  } catch (error) {
+    console.error('Failed to send push notification:', error)
+  }
+}
+
 // GET - Get reminders
 export async function GET(request: NextRequest) {
   try {
@@ -79,7 +96,7 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
     const body = await request.json()
-    const { title, details, date, isFullDay, startTime, endTime, completionType, employeeIds } = body
+    const { title, details, date, isFullDay, startTime, endTime, completionType, employeeIds, sendNotification } = body
 
     if (!title || !date || !employeeIds?.length) {
       return NextResponse.json({ error: 'العنوان والتاريخ والموظفين مطلوبون' }, { status: 400 })
@@ -117,6 +134,19 @@ export async function POST(request: NextRequest) {
     if (linkError) {
       await supabase.from('reminders').delete().eq('id', reminder.id)
       return NextResponse.json({ error: linkError.message }, { status: 500 })
+    }
+
+    // Send push notification to all assigned employees
+    if (sendNotification !== false) {
+      const timeStr = startTime ? ` - ${startTime}` : ''
+      for (const empId of employeeIds) {
+        sendPushNotification(
+          empId,
+          '⏰ تذكير جديد',
+          `${title}${timeStr} - ${date}`,
+          { type: 'reminder', reminderId: reminder.id, date }
+        )
+      }
     }
 
     return NextResponse.json({ success: true, data: reminder })
