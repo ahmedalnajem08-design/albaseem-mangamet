@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام البسيم - إرسال واتساب</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        h1 { 
+            color: #25D366; 
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .connected { background: #d4edda; color: #155724; }
+        .disconnected { background: #f8d7da; color: #721c24; }
+        .connecting { background: #fff3cd; color: #856404; }
+        
+        .section {
+            margin: 25px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+        .section h3 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #25D366;
+            padding-bottom: 10px;
+        }
+        
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        input:focus, textarea:focus, select:focus {
+            border-color: #25D366;
+            outline: none;
+        }
+        
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+        
+        button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 18px;
+            font-weight: bold;
+            width: 100%;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(37, 211, 102, 0.4);
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        
+        .qr-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .qr-container img {
+            max-width: 300px;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .customer-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        .customer-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        .customer-item:last-child { border-bottom: none; }
+        .customer-item input[type="checkbox"] {
+            width: auto;
+            margin-left: 10px;
+        }
+        .customer-item label {
+            flex: 1;
+            cursor: pointer;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #25D366;
+        }
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 نظام البسيم - واتساب</h1>
+        <p class="subtitle">إرسال رسائل الواتساب مباشرة من النظام</p>
+        
+        <div id="status" class="status disconnected">جاري التحقق من الاتصال...</div>
+        
+        <div id="qr-section" class="qr-container" style="display:none;">
+            <h3>امسح الـ QR Code للاتصال</h3>
+            <img id="qr-image" src="" alt="QR Code">
+        </div>
+        
+        <div id="send-section" style="display:none;">
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-number" id="total-customers">0</div>
+                    <div class="stat-label">إجمالي الزبائن</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="selected-count">0</div>
+                    <div class="stat-label">محدد للإرسال</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number" id="sent-count">0</div>
+                    <div class="stat-label">تم الإرسال</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h3>👥 اختيار المستلمين</h3>
+                <select id="target-type" onchange="updateCustomerList()">
+                    <option value="all">📧 إرسال للجميع</option>
+                    <option value="city">🏙️ إرسال حسب المدينة</option>
+                    <option value="specific">☑️ اختيار محدد</option>
+                </select>
+                
+                <select id="city-select" style="display:none;" onchange="updateCustomerList()">
+                    <option value="">اختر المدينة</option>
+                </select>
+                
+                <div id="customer-list" class="customer-list" style="display:none;"></div>
+            </div>
+            
+            <div class="section">
+                <h3>💬 الرسالة</h3>
+                <textarea id="message" placeholder="اكتب رسالتك هنا..."></textarea>
+            </div>
+            
+            <button id="send-btn" onclick="sendMessages()">📤 إرسال الرسائل</button>
+            
+            <div id="result" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const SERVER_URL = 'https://albaseem-whatsapp-production.up.railway.app';
+        const VERCEL_API = 'https://albaseem-mangamet.vercel.app/api/customers';
+        
+        let customers = [];
+        let cities = [];
+        let isConnected = false;
+        
+        // Check status on load
+        async function checkStatus() {
+            try {
+                const res = await fetch(`${SERVER_URL}/api/status`);
+                const data = await res.json();
+                
+                const statusEl = document.getElementById('status');
+                const qrSection = document.getElementById('qr-section');
+                const sendSection = document.getElementById('send-section');
+                
+                if (data.ready) {
+                    statusEl.className = 'status connected';
+                    statusEl.textContent = '✅ الواتساب متصل وجاهز للإرسال';
+                    qrSection.style.display = 'none';
+                    sendSection.style.display = 'block';
+                    isConnected = true;
+                    loadCustomers();
+                } else if (data.status === 'qr') {
+                    statusEl.className = 'status connecting';
+                    statusEl.textContent = '📲 امسح الـ QR Code للاتصال';
+                    qrSection.style.display = 'block';
+                    sendSection.style.display = 'none';
+                    loadQR();
+                } else {
+                    statusEl.className = 'status disconnected';
+                    statusEl.textContent = '⏳ جاري تهيئة الواتساب...';
+                    qrSection.style.display = 'none';
+                    sendSection.style.display = 'none';
+                }
+            } catch (err) {
+                document.getElementById('status').className = 'status disconnected';
+                document.getElementById('status').textContent = '❌ خطأ في الاتصال: ' + err.message;
+            }
+        }
+        
+        async function loadQR() {
+            try {
+                const res = await fetch(`${SERVER_URL}/api/qr`);
+                const data = await res.json();
+                if (data.qr) {
+                    document.getElementById('qr-image').src = data.qr;
+                }
+            } catch (err) {
+                console.error('QR load error:', err);
+            }
+        }
+        
+        async function loadCustomers() {
+            try {
+                const res = await fetch(VERCEL_API);
+                const data = await res.json();
+                
+                if (data.success) {
+                    customers = data.data;
+                    
+                    // Extract cities
+                    const cityMap = new Map();
+                    customers.forEach(c => {
+                        if (c.cities) {
+                            c.cities.forEach(city => {
+                                cityMap.set(city.id, city.name);
+                            });
+                        }
+                    });
+                    cities = Array.from(cityMap.entries()).map(([id, name]) => ({ id, name }));
+                    
+                    // Update UI
+                    document.getElementById('total-customers').textContent = customers.length;
+                    
+                    // Populate city dropdown
+                    const citySelect = document.getElementById('city-select');
+                    citySelect.innerHTML = '<option value="">اختر المدينة</option>';
+                    cities.forEach(city => {
+                        citySelect.innerHTML += `<option value="${city.id}">${city.name}</option>`;
+                    });
+                    
+                    updateCustomerList();
+                }
+            } catch (err) {
+                console.error('Load customers error:', err);
+            }
+        }
+        
+        function updateCustomerList() {
+            const targetType = document.getElementById('target-type').value;
+            const citySelect = document.getElementById('city-select');
+            const customerList = document.getElementById('customer-list');
+            const selectedCity = citySelect.value;
+            
+            if (targetType === 'city') {
+                citySelect.style.display = 'block';
+                customerList.style.display = 'none';
+            } else if (targetType === 'specific') {
+                citySelect.style.display = 'none';
+                customerList.style.display = 'block';
+                
+                // Show customer checkboxes
+                customerList.innerHTML = '';
+                customers.forEach(c => {
+                    customerList.innerHTML += `
+                        <div class="customer-item">
+                            <input type="checkbox" id="cust-${c.id}" onchange="updateSelectedCount()">
+                            <label for="cust-${c.id}">${c.name} (${c.phone})</label>
+                        </div>
+                    `;
+                });
+            } else {
+                citySelect.style.display = 'none';
+                customerList.style.display = 'none';
+            }
+            
+            updateSelectedCount();
+        }
+        
+        function updateSelectedCount() {
+            const targetType = document.getElementById('target-type').value;
+            let count = 0;
+            
+            if (targetType === 'all') {
+                count = customers.length;
+            } else if (targetType === 'city') {
+                const cityId = document.getElementById('city-select').value;
+                if (cityId) {
+                    count = customers.filter(c => c.cityIds && c.cityIds.includes(cityId)).length;
+                }
+            } else {
+                count = document.querySelectorAll('#customer-list input:checked').length;
+            }
+            
+            document.getElementById('selected-count').textContent = count;
+        }
+        
+        function formatPhone(phone) {
+            let cleaned = (phone || '').replace(/\D/g, '');
+            if (cleaned.startsWith('0')) {
+                cleaned = '964' + cleaned.substring(1);
+            }
+            return cleaned;
+        }
+        
+        async function sendMessages() {
+            const message = document.getElementById('message').value.trim();
+            if (!message) {
+                alert('الرجاء كتابة الرسالة');
+                return;
+            }
+            
+            const targetType = document.getElementById('target-type').value;
+            let targets = [];
+            
+            if (targetType === 'all') {
+                targets = customers;
+            } else if (targetType === 'city') {
+                const cityId = document.getElementById('city-select').value;
+                if (!cityId) {
+                    alert('الرجاء اختيار المدينة');
+                    return;
+                }
+                targets = customers.filter(c => c.cityIds && c.cityIds.includes(cityId));
+            } else {
+                const checked = document.querySelectorAll('#customer-list input:checked');
+                if (checked.length === 0) {
+                    alert('الرجاء اختيار زبون واحد على الأقل');
+                    return;
+                }
+                checked.forEach(cb => {
+                    const id = cb.id.replace('cust-', '');
+                    const customer = customers.find(c => c.id === id);
+                    if (customer) targets.push(customer);
+                });
+            }
+            
+            if (targets.length === 0) {
+                alert('لا يوجد مستلمين');
+                return;
+            }
+            
+            if (!confirm(`سيتم إرسال الرسالة إلى ${targets.length} مستلم. هل تريد المتابعة؟`)) {
+                return;
+            }
+            
+            const btn = document.getElementById('send-btn');
+            btn.disabled = true;
+            btn.textContent = '⏳ جاري الإرسال...';
+            
+            const resultEl = document.getElementById('result');
+            resultEl.style.display = 'block';
+            resultEl.className = 'result';
+            resultEl.textContent = 'بدء الإرسال...\n';
+            
+            let successCount = 0;
+            let failCount = 0;
+            
+            for (let i = 0; i < targets.length; i++) {
+                const target = targets[i];
+                const phone = formatPhone(target.phone);
+                
+                resultEl.textContent += `\n[${i + 1}/${targets.length}] إرسال إلى ${target.name} (${phone})...`;
+                
+                try {
+                    const res = await fetch(`${SERVER_URL}/api/send-message`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ phone, message })
+                    });
+                    
+                    const data = await res.json();
+                    
+                    if (data.success) {
+                        successCount++;
+                        resultEl.textContent += ' ✅ نجح';
+                    } else {
+                        failCount++;
+                        resultEl.textContent += ` ❌ فشل: ${data.error || data.message}`;
+                    }
+                } catch (err) {
+                    failCount++;
+                    resultEl.textContent += ` ❌ خطأ: ${err.message}`;
+                }
+                
+                document.getElementById('sent-count').textContent = successCount;
+                
+                // Delay between messages
+                if (i < targets.length - 1) {
+                    await new Promise(r => setTimeout(r, 2000));
+                }
+            }
+            
+            resultEl.textContent += `\n\n=== النتيجة النهائية ===`;
+            resultEl.textContent += `\n✅ نجح: ${successCount}`;
+            resultEl.textContent += `\n❌ فشل: ${failCount}`;
+            
+            if (failCount === 0) {
+                resultEl.className = 'result success';
+            } else if (successCount === 0) {
+                resultEl.className = 'result error';
+            }
+            
+            btn.disabled = false;
+            btn.textContent = '📤 إرسال الرسائل';
+        }
+        
+        // Initialize
+        checkStatus();
+        setInterval(checkStatus, 5000);
+    </script>
+</body>
+</html>
